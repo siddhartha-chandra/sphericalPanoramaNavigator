@@ -2,210 +2,218 @@
 #include<CImg.h>
 #include<string>
 #include<cmath>
+#define PI 3.14159
 
 using namespace std;
 using namespace cimg_library;
 
+
 int main()
 {
   
-  //printf("Hello\n");
-  //CImg<unsigned char> img;
   //cimg::imagemagick_path( "/usr/local/bin/convert" );
   CImg<unsigned char> image("kate_sp.jpg");
   CImg<unsigned char> visu(image);
   CImgDisplay disp(visu);
   CImgDisplay disp2;
+  CImgDisplay disp3;
+  CImgDisplay disp4;
 
   visu.display(disp);
   int rows = image.height();
   int cols = image.width();
   
-  //cout<<"height= "<<rows<<endl;
-  //cout<<"width= "<<cols<<endl;
+
+  int row_degreeToPixlfactor= rows/180;
+  int col_degreeToPixlfactor= cols/360;
+  
 
   //Let fov=45 degrees
   int fov=45;
-  int proj_z=180;
   
-  float x_mid= cols/2;
-  float y_mid= rows/2;
- 
-  //int c [3]={x_mid, y_mid, 180};
   int az_rot=0;
   int ze_rot=0;
   
-  int theta_c= 180 + az_rot;
-  int phi_c= 90+ze_rot;
-
-  if(theta_c<fov)
-    theta_c=fov;
-
-  if(theta_c>(360-fov))
-    theta_c=360-fov;
-
-  if(phi_c<fov)
-    phi_c=fov;
-      
-  if(phi_c>(180-fov))
-    phi_c=fov;
-
-  int c [3]={theta_c*2, phi_c*2, 180};
+  int theta_c= 360/2 ;
+  int phi_c= 180/2 ;
   
-  int theta_bound_l=(theta_c-fov);
-  int theta_bound_u=(theta_c+fov);
-  int phi_bound_l=(phi_c-fov);
-  int phi_bound_u=(phi_c+fov);
+  int i,j,r;
   
-  int i,j;
-  int rho=180;
+  float x_dist, y_dist, x_dist2, y_dist2, z_dist;
+  float vec [3], l_theta,l_phi, theta_pix, phi_pix;
+  int temp_x, temp_y, val[3];
+  int img_pos_x,img_pos_y;
   
-  int x_dist, y_dist, x_dist2, y_dist2, z_dist;
-  float vec [3];
+  float theta, phi;
   
-  // cout<<"bounds are: "<<endl;
-  // cout<<theta_bound_l<<":"<<theta_bound_u<<endl;
-  // cout<<phi_bound_l<<":"<<phi_bound_u<<endl<<endl;
+  
+  z_dist=180;
 
-  CImg<unsigned char> foveal(180,180,1,3,0); 
-  for (i=theta_bound_l*2; i<=theta_bound_u*2;i++)
+  unsigned char col[3]={ 0,0,255 };
+  CImg<unsigned char> foveal(360,360,1,3,0);
+  CImg<unsigned char> foveal2(360,360,1,3,0);
+  CImg<unsigned char> foveal3(360,360,1,3,0);
+
+  float c [2]={theta_c,phi_c};
+  
+
+  while(!disp.is_closed())
     {
-      for(j=phi_bound_l*2; j<=phi_bound_u*2;j++)
-	     {
-	     x_dist=i-c[0];
-	     y_dist=j-c[1];
-	     x_dist2= x_dist*x_dist;
-	     y_dist2=y_dist*y_dist;
-	     z_dist= sqrt((rho*rho)-(x_dist2+y_dist2));
-	  
-	     vec[0]=floor(proj_z*x_dist/z_dist);
-	     vec[1]=floor(proj_z*y_dist/z_dist);
-	     vec[2]=floor(proj_z*z_dist/z_dist);
-
-	  
-        foveal(i-(theta_bound_l*2),j-(phi_bound_l*2),0)=image(c[0]+vec[0],c[1]+vec[1],0);
-        foveal(i-(theta_bound_l*2),j-(phi_bound_l*2),1)=image(c[0]+vec[0],c\
-                  [1]+vec[1],1);
-        foveal(i-(theta_bound_l*2),j-(phi_bound_l*2),2)=image(c[0]+vec[0],c\
-                  [1]+vec[1],2);
-
-	      // cout<<"position assigned on foveal: ["<<j-(phi_bound_l*2)<<", "<<i-(theta_bound_l*2)<<"]"<<endl;
-       //  cout<<"centre: "<<c[0]<<":"<<c[1]<<endl;
-       //  cout<<"vec is: ["<<vec[0]<<", "<<vec[1]<<", "<<vec[2]<<"]"<<endl<<endl;
-	      // cout<<"position from image: ["<<c[1]+vec[1]<<","<<c[0]+vec[0]<<"]"<<endl;
-	      // cout<<"value: ["<<int(image(c[1]+vec[1],c[0]+vec[0],0))<<","<<int(image(c[1]+vec[1],c[0]+vec[0],1))<<","<<int(image(c[1]+vec[1],c[0]+vec[0],2))<<"]"<<endl;
-	  
-	     }
-    }
-
- 
-  visu=foveal;
-  visu.display(disp2);
-
-  while(!disp2.is_closed())
-    {
-      disp2.wait();
+      disp.wait();
 
       //left key pressed
-      if (disp2.key()==65361)
+      if (disp.key()==65361)
         {
-            if(az_rot+theta_bound_l>0)
-              az_rot=az_rot-4;
+            if(az_rot>-100)
+              az_rot=az_rot-2;
 
             //cout<<"left key pressed: "<<az_rot<<endl;
         }
       //top key pressed
-      else if (disp2.key()==65362)
+      else if (disp.key()==65362)
         {
-            if(ze_rot+phi_bound_l>0)
-              ze_rot=ze_rot-4;
+            if(ze_rot>-15)
+              ze_rot=ze_rot-2;
             //cout<<"top key pressed: "<<ze_rot<<endl;
         }
       //rightkey pressed
-      else if (disp2.key()==65363)
+      else if (disp.key()==65363)
         {
-            if(az_rot+theta_bound_u<360)
-              az_rot=az_rot+4;
+            if(az_rot<100)
+              az_rot=az_rot+2;
             //cout<<"right key pressed: "<<az_rot<<endl;
         }
       //bottom key pressed
-      else if (disp2.key()==65364)
+      else if (disp.key()==65364)
         {
-            if(ze_rot+phi_bound_u<180)
-              ze_rot=ze_rot+4;
+            if(ze_rot<15)
+              ze_rot=ze_rot+2;
 
             //cout<<"down key pressed: "<<ze_rot<<endl;
         }
 
       //decrease magnification
-      else if (disp2.key()=='-')
+      else if (disp.key()=='-')
         {
 
-            // if(theta_c-fov>0 && phi_c-fov>0)
-            // {
-            //   fov=fov-1;
-            //   theta_bound_l=theta_c-fov;
-            //   phi_bound_l=phi_c-fov;
-            // }
 
-            if(proj_z<200)
-              proj_z=proj_z+4;
+            if(z_dist<300)
+              z_dist=z_dist+4;
         }
       //increase magnification
-      else if (disp2.key()=='=')
+      else if (disp.key()=='=')
         {
-            // if(theta_c+fov<360 && phi_c+fov<180)
-            // {
-            //   fov=fov+1;
-            //   theta_bound_u=theta_c+fov;
-            //   phi_bound_u=phi_c+fov;
-            // }
+            
 
-            if(proj_z>50)
-              proj_z=proj_z-4;
+            if(z_dist>50)
+              z_dist=z_dist-4;
 
             //cout<<"increasing mag: "<<proj_z<<endl;
         }
+      
 
-        //new centre
-        theta_c= 180 + az_rot;
-        phi_c= 90+ze_rot;
-        c[0]=theta_c*2;
-        c[1]=phi_c*2;
-          
-        //setting new bounds  
-        theta_bound_l=(theta_c-fov);
-        theta_bound_u=(theta_c+fov);
-        phi_bound_l=(phi_c-fov);
-        phi_bound_u=(phi_c+fov);
-
-        for (i=theta_bound_l*2; i<=theta_bound_u*2;i++)
+        visu=image;
+        for (j=0; j<360;j++)
         {
-          for(j=phi_bound_l*2; j<=phi_bound_u*2;j++)
-          {
-            x_dist=i-c[0];
-            y_dist=j-c[1];
-            x_dist2= x_dist*x_dist;
-            y_dist2=y_dist*y_dist;
-            z_dist= sqrt((rho*rho)-(x_dist2+y_dist2));
-    
-            vec[0]=floor(proj_z*x_dist/z_dist);
-            vec[1]=floor(proj_z*y_dist/z_dist);
-            vec[2]=floor(proj_z*z_dist/z_dist);
+          for(i=0; i<360;i++)
+           {
+           
+           x_dist=i-theta_c;
+           y_dist=phi_c-j;    
 
-    
-            foveal(i-(theta_bound_l*2),j-(phi_bound_l*2),0)=image(c[0]+vec[0],c[1]+vec[1],0);
-            foveal(i-(theta_bound_l*2),j-(phi_bound_l*2),1)=image(c[0]+vec[0],c\
-                  [1]+vec[1],1);
-            foveal(i-(theta_bound_l*2),j-(phi_bound_l*2),2)=image(c[0]+vec[0],c\
-                  [1]+vec[1],2);
-          }
+           cout<<"x dist: "<<x_dist<<endl;
+           cout<<"y dist: "<<y_dist<<endl;    
+
+           if(x_dist==0 && y_dist==0)
+           {
+            x_dist=0.001;
+            y_dist=0.001;
+           }
+
+           
+           r= sqrt(x_dist*x_dist + y_dist*y_dist + z_dist*z_dist);
+
+           //r= sqrt(x_dist*x_dist + y_dist*y_dist);
+           //l_phi= (asin(y_dist/r))*180/PI;
+           //l_theta=(atan(x_dist/z_dist))*180/PI;    
+
+           l_phi= (acos(z_dist/r))*180/PI;
+           l_theta=(atan(abs(x_dist/y_dist)))*180/PI;    
+
+           
+           if(x_dist<0)
+               l_theta=-l_theta;
+           // else if(x_dist<0 && y_dist<0)
+           //    l_theta=l_theta+180;
+           // else if(x_dist>0 && y_dist<0)
+           //    l_theta=360-l_theta;
+           //  else if(x_dist>0 && y_dist>0)
+           //    l_theta=360-l_theta;
+           
+            theta=l_theta+c[0] + az_rot;
+
+           // if(y_dist>0)
+           //    l_phi=-l_phi;
+              
+            phi=l_phi+c[1]+ze_rot;
+
+           cout<< "local_phi: "<< l_phi<<endl;
+           cout<< "local_theta: "<< l_theta<<endl;    
+
+           cout<< "phi: "<< phi<<endl;
+           cout<< "theta: "<< theta<<endl;    
+
+            theta_pix= floor(theta*col_degreeToPixlfactor);
+            phi_pix= floor(phi*row_degreeToPixlfactor);
+            visu.draw_circle(theta_pix, phi_pix, 1, col, 1, 1);
+
+
+            foveal3(i,j,0)=image(theta_pix,phi_pix,0);
+            foveal3(i,j,1)=image(theta_pix,phi_pix,1);
+            foveal3(i,j,2)=image(theta_pix,phi_pix,2);
+
+
+            theta_pix= theta*col_degreeToPixlfactor;
+            phi_pix= phi*row_degreeToPixlfactor;
+
+            val[0] = image.linear_atXY(theta_pix,phi_pix,0);
+            val[1] = image.linear_atXY(theta_pix,phi_pix,1);
+            val[2] = image.linear_atXY(theta_pix,phi_pix,2);
+
+            foveal(i,j,0)=val[0];
+            foveal(i,j,1)=val[1];
+            foveal(i,j,2)=val[2];
+
+            val[0] = image.cubic_atXY(theta_pix,phi_pix,0);
+            val[1] = image.cubic_atXY(theta_pix,phi_pix,1);
+            val[2] = image.cubic_atXY(theta_pix,phi_pix,2);
+
+            foveal2(i,j,0)=image(theta_pix,phi_pix,0);
+            foveal2(i,j,1)=image(theta_pix,phi_pix,1);
+            foveal2(i,j,2)=image(theta_pix,phi_pix,2);
+
+            
+            
+            //getchar();
+            //visu.display(disp);
+        
+           }
+           visu.display(disp);
+           //getchar();
+           //visu=image;
         }
 
-        visu=foveal;
-        visu.display(disp2);
+        
+        //visu=foveal2;
+        disp2.empty();
+        foveal.display(disp2);
+        disp2.set_title("Linear interpolation");
 
-   
+        // foveal2.display(disp3);
+        // disp3.set_title("Cubic interpolation");
+
+        // foveal3.display(disp4);
+        // disp4.set_title("No interpolation");
     }
   return 0;
 
