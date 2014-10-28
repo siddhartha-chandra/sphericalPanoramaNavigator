@@ -112,36 +112,44 @@ int main()
         }
       
 
+        int xcoord, ycoord;
         visu=image;
-        for (j=0; j<360;j++)
+        for (j=-180; j<180;j++)
         {
-          for(i=0; i<360;i++)
+          for(i=-180; i<180;i++)
            {
            
-           x_dist=i-theta_c;
-           y_dist=phi_c-j;    
+           x_dist=abs(i);
+           y_dist=abs(j);
+           xcoord=i+180;
+           ycoord=j+180;
 
-           cout<<"x dist: "<<x_dist<<endl;
-           cout<<"y dist: "<<y_dist<<endl;    
-
+            if(j==-180)
+            {
+              cout<<"x dist: "<<x_dist<<endl;
+              cout<<"y dist: "<<y_dist<<endl;    
+            }
+           
            if(x_dist==0 && y_dist==0)
            {
             x_dist=0.001;
             y_dist=0.001;
            }
-
            
-           r= sqrt(x_dist*x_dist + y_dist*y_dist + z_dist*z_dist);
+           r= sqrt( (x_dist*x_dist) + (y_dist*y_dist) + (z_dist*z_dist) );
+
+           if (i==-180)
+            cout<<"r dist: "<<r<<endl;    
 
            //r= sqrt(x_dist*x_dist + y_dist*y_dist);
-           //l_phi= (asin(y_dist/r))*180/PI;
-           //l_theta=(atan(x_dist/z_dist))*180/PI;    
+           //l_phi= abs((asin(y_dist/r))*180/PI);
+           //l_theta=abs((atan(x_dist/z_dist))*180/PI);    
 
-           l_phi= (acos(z_dist/r))*180/PI;
-           l_theta=(atan(abs(x_dist/y_dist)))*180/PI;    
+           l_phi= abs((asin(z_dist/r))*180/PI);
+           l_theta=abs((atan(abs(x_dist/y_dist)))*180/PI);    
 
            
-           if(x_dist<0)
+           if(i<0)
                l_theta=-l_theta;
            // else if(x_dist<0 && y_dist<0)
            //    l_theta=l_theta+180;
@@ -152,25 +160,43 @@ int main()
            
             theta=l_theta+c[0] + az_rot;
 
-           // if(y_dist>0)
-           //    l_phi=-l_phi;
+            cout<< "phi_ l re: "<< l_phi<<endl;
+
+            if(j<0)
+                l_phi=-l_phi;
+             
+            cout<< "phi_l re: "<< l_phi<<endl;
               
             phi=l_phi+c[1]+ze_rot;
 
-           cout<< "local_phi: "<< l_phi<<endl;
-           cout<< "local_theta: "<< l_theta<<endl;    
 
-           cout<< "phi: "<< phi<<endl;
-           cout<< "theta: "<< theta<<endl;    
+            if (i==-180)
+            {
+              cout<< "local_phi: "<< l_phi<<endl;
+              cout<< "local_theta: "<< l_theta<<endl;    
+
+              cout<< "phi: "<< phi<<endl;
+              cout<< "theta: "<< theta<<endl;       
+            }
+           
 
             theta_pix= floor(theta*col_degreeToPixlfactor);
-            phi_pix= floor(phi*row_degreeToPixlfactor);
-            visu.draw_circle(theta_pix, phi_pix, 1, col, 1, 1);
+            phi_pix= floor((phi+ycoord)*row_degreeToPixlfactor);
 
 
-            foveal3(i,j,0)=image(theta_pix,phi_pix,0);
-            foveal3(i,j,1)=image(theta_pix,phi_pix,1);
-            foveal3(i,j,2)=image(theta_pix,phi_pix,2);
+            // if (i==-180 || j==-180 || i==179 || j==179)
+            // {
+              visu.draw_circle(theta_pix, phi_pix, 0.5, col, 1, 1);  
+            // }
+            
+
+            
+            //xcoord=i;
+            //ycoord=j;
+
+            foveal3(xcoord,ycoord,0)=image(theta_pix,phi_pix,0);
+            foveal3(xcoord,ycoord,1)=image(theta_pix,phi_pix,1);
+            foveal3(xcoord,ycoord,2)=image(theta_pix,phi_pix,2);
 
 
             theta_pix= theta*col_degreeToPixlfactor;
@@ -180,30 +206,29 @@ int main()
             val[1] = image.linear_atXY(theta_pix,phi_pix,1);
             val[2] = image.linear_atXY(theta_pix,phi_pix,2);
 
-            foveal(i,j,0)=val[0];
-            foveal(i,j,1)=val[1];
-            foveal(i,j,2)=val[2];
+            foveal(xcoord,ycoord,0)=val[0];
+            foveal(xcoord,ycoord,1)=val[1];
+            foveal(xcoord,ycoord,2)=val[2];
 
             val[0] = image.cubic_atXY(theta_pix,phi_pix,0);
             val[1] = image.cubic_atXY(theta_pix,phi_pix,1);
             val[2] = image.cubic_atXY(theta_pix,phi_pix,2);
 
-            foveal2(i,j,0)=image(theta_pix,phi_pix,0);
-            foveal2(i,j,1)=image(theta_pix,phi_pix,1);
-            foveal2(i,j,2)=image(theta_pix,phi_pix,2);
+            foveal2(xcoord,ycoord,0)=image(theta_pix,phi_pix,0);
+            foveal2(xcoord,ycoord,1)=image(theta_pix,phi_pix,1);
+            foveal2(xcoord,ycoord,2)=image(theta_pix,phi_pix,2);
 
-            
-            
+            //if(i==-180)
             //getchar();
             //visu.display(disp);
         
            }
            visu.display(disp);
-           //getchar();
+           getchar();
            //visu=image;
         }
 
-        
+        visu.display(disp);
         //visu=foveal2;
         disp2.empty();
         foveal.display(disp2);
