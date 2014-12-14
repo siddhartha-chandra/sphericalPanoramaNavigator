@@ -26,284 +26,104 @@ int main(int argc, char * argv[])
   if (argc!=2)
   {
     cout<<"Usage: "<<endl;
-    cout<<"./nav <spherical panorama file>"<<endl;
+    cout<<"./nav <catadioptric image file>"<<endl;
     exit(1);
   }
 
   CImg<unsigned char> image(argv[1]);
+  int height = image.height();
+  int width = image.width();
+
+
   CImg<unsigned char> visu(image);
-  CImgDisplay disp(visu);
-  CImgDisplay disp2;
-  CImgDisplay disp3;
+  CImgDisplay cataDisp;
+  CImgDisplay perspDisp;
 
-  visu.display(disp);
+  image.display(cataDisp);
+  int clicked =0;
 
-  int rows = image.height();
-  int cols = image.width();
+  /*calculate following:
+  1. cx, cy - cataImg centre (based on user input)
+  2. R1, R2 - inner and outer radius of cataImg (based on user input)
+  3. height_persp, width_persp - height and width of perspective image
 
-  int row_degreeToPixlfactor= rows/180;
-  int col_degreeToPixlfactor= cols/360;
+  */
 
-  double row_radToPixlfactor= rows/PI;
-  double col_radToPixlfactor= cols/(2*PI);
 
-  int cartesianHeight = 300;
-  int cartesianWidth = 300;
+  int cx, cy, R1, R2, height_persp, width_persp;
 
-  //Initial Theta and phi angles
-  // theta - angle in X-Y plane
-  // phi - angle wrt z-axis
-  // rho - distance of projection plane from center of sphere. 
-  //       Initially set to (cartesianHeight/2) for 90 degree FOV
+  
+  cx = width/2;
+  cy = height/2;
+  
+  R2 = cx>=cy?cy:cx;
+  R1 = 0;
+  height_persp = R2-R1;
+  width_persp = 2 * PI * R2;
 
-  double theta = 180;
-  double phi = 90;
-  double rho = cartesianHeight/2;
+  double th=0;
 
   unsigned char col[] = {0, 0 , 255};
-  CImg<unsigned char> foveal(cartesianWidth,cartesianHeight,1,3,0);
-  CImg<unsigned char> foveal1(cartesianWidth,cartesianHeight,1,3,0);
+  CImg<unsigned char> persp(width_persp,height_persp,1,3,0);
 
-  disp2.empty();
-  foveal.display(disp2);
-
-  // disp3.empty();
-  // foveal1.display(disp3);
-
-
-  disp2.show_mouse ();
-
-
-  //variables for mouse related events
-  int refTheta=-1;
-  int refPhi=-1;
-  int currTheta;
-  int currPhi;
-  int theta_del;
-  int phi_del;
-
-  bool gridVisible = false;
-
-
-  //Projected Plane related variables
-  //defining projected Plane as:
-  vector<vector<pair<double, double> > > projectedPlane;
+  perspDisp.empty();
+  persp.display(perspDisp);
 
   int i,j;
-  for (i = 0; i<cartesianHeight; i++)
-  {
-    vector<pair<double, double> > temp;
-    projectedPlane.push_back(temp);
-    projectedPlane[i].resize(cartesianWidth);
-  }
 
-  int height = int(projectedPlane.size());
-  int width = int(projectedPlane[0].size());
+  /*calculations for perspecive projected image
 
+  1. r - radial distance of pixel (r=R1 for y=0 and r=R2 for y=height)
+  2. theta - lies in the range of 0 to 2PI ...0 for x=0 and 2Pi for x = width
+  3. xs - the correspondnig x-coordinate from cataImg
+  4. ys - the correspondnig y-coordinate from cataImg
+  */
 
-  int centre[2];
-  centre[0] = width/2;
-  centre[1] = height/2;
-
-  vector<double> point3d(3,0);
-  vector<double> point3d_rotatedZ(3,0);
-  vector<double> point3d_rotatedYCap(3,0);
-  
-  vector<double> ycap(3,0);
-  vector<double> zcap(3,0);
-  zcap[2] = 1;
-
-  double theta_calculated;
-  double ph_calculated;
-  double dist;
-  double theta_pix;
-  double phi_pix;
+  double r, theta, x_s, y_s;
   double val[3];
-
-  int xcoord;
-  int ycoord;
-  // Plane related variables end
-
-  while (!disp2.is_closed())
-  {
-    
-    if (disp2.key() == 'g')
-          toggle_gridVisible(&gridVisible);
-
-    //todo: key press for resizing window
-
-    //key press for changing distance of focal distance
-    else if (disp2.key() == '-')
-      rho -= 5;
-    else if(disp2.key() == '=')
-      rho +=5;
-
-    else if(refTheta==-1 && refPhi==-1)
+  //while (!cataDisp.is_closed() && !perspDisp.is_closed())
+  //{
+    for (i = 0; i < width_persp; ++i)
     {
-          // This part retracts the viewing window to original state
-          // if theta and phi do not have originally assigned values, the viewing window is displaced and shud be returned back
-          if (theta!=180 || phi!=90)
-          {
-              theta += 0.2*(180-theta);
-              phi += 0.2*(90-phi);
-
-          }
-          
-            //visu.display(disp);
-            //foveal.display(disp2);
-    }
-
-    //mouse events
-    if(disp2.button())
-    {
-        
-        if(refTheta==-1 && refPhi==-1)
-        {
-          refTheta = disp2.mouse_x();
-          refPhi = disp2.mouse_y();
-          theta_del =0;
-          phi_del =0;
-        }
-        else
-        {
-          currTheta = disp2.mouse_x();
-          currPhi = disp2.mouse_y();
-          theta_del = currTheta - refTheta;
-          phi_del = currPhi - refPhi;
-        }
-        
-
-        //if ( (theta + theta_del >= 0) && (theta+theta_del <= 360) )
-        if ( theta + theta_del < 0)
-          theta = 0;
-        else if(theta+theta_del > 360)
-          theta = 360;
-        else
-          theta=theta+ 0.1*theta_del;        
-
-        if (phi +phi_del <0 )
-          phi = 0;
-        else if (phi +phi_del >180 )
-          phi = 180;
-        else
-            phi=phi+ 0.1*phi_del;          
-
-
-    }
-    else
-    {
-      refTheta=-1;
-      refPhi=-1;
-      
-    }
-
-    //Rendering projected plane starts
-
-    //algorithm.
-             //1. calculate point3d
-             //2. rotate point3d about z-axis(fixed) by theta
-             //3. get new y-basis 
-             //4. rotate by phi about new y-axis
-
-    visu = image;
-    double costheta = cos(theta * DEG2RAD);
-    double sintheta = sin(theta * DEG2RAD);
-
-    double cosphi = cos(phi * DEG2RAD);
-    double sinphi = sin(phi * DEG2RAD);
-
-    for(i = 0; i< height; i++)
-    {
-      for (j = 0; j < width; ++j)
+      for (j = 0; j < height_persp; ++j)
       {
+        r =  ((j/double(height_persp)) * height_persp) + R1;
+        theta = (i/double(width_persp)) * 2*PI;
+        //theta -= PI/4;
 
-        //1. calculate point3d
-        //shift Plane centre and get Coordinate Positions
-        point3d[0] = j - centre[0];
-        point3d[1] = centre[1] - i;
-        point3d[2] = rho; 
+        x_s = cx + r*sin(theta);
+        y_s = cy + r*cos(theta);
 
-        //2. rotate point3d about z-axis(fixed) by theta
-        point3d_rotatedZ[0] = point3d[0] * costheta;
-        point3d_rotatedZ[0] -= point3d[1]* sintheta;
-        point3d_rotatedZ[1] = point3d[1]* costheta;
-        point3d_rotatedZ[1] += point3d[0] * sintheta;
-        point3d_rotatedZ[2] = point3d[2];
-        //rotation ends
+        val[0] = image.linear_atXY(x_s,y_s,0);
+        val[1] = image.linear_atXY(x_s,y_s,1);
+        val[2] = image.linear_atXY(x_s,y_s,2);
 
-        //3. rotate by phi about new x-axis
-        //point3d_rotatedYCap = axisAngleRotate(point3d_rotatedZ, ycap, phi); 
+        // persp(i, height_persp-j,0)=val[0];
+        // persp(i, height_persp-j,1)=val[1];
+        // persp(i, height_persp-j,2)=val[2];
 
-        double scalar = -point3d_rotatedZ[0] * sintheta;
-        scalar += point3d_rotatedZ[1] * costheta;
-        scalar *= (1- cosphi);
+        persp(i, j,0)=val[0];
+        persp(i, j,1)=val[1];
+        persp(i, j,2)=val[2];
 
-        point3d_rotatedYCap[0] = point3d_rotatedZ[0] * cosphi;
-        point3d_rotatedYCap[0] += scalar* (-sintheta);
-        point3d_rotatedYCap[0] +=  point3d[2] * sinphi *costheta;
-
-        point3d_rotatedYCap[1] = point3d_rotatedZ[1] * cosphi;
-        point3d_rotatedYCap[1] +=  scalar* costheta;
-        point3d_rotatedYCap[1] += point3d_rotatedZ[2] * sintheta *sinphi;
-
-        point3d_rotatedYCap[2] = point3d_rotatedZ[2] * cosphi;
-        point3d_rotatedYCap[2] += (-sinphi) * ( (point3d_rotatedZ[1] * sintheta)  + (point3d_rotatedZ[0] * costheta) );
-        //rotate ends
-
-        //calculate theta and phi for the point and store in plane
-        dist = sqrt((point3d_rotatedYCap[0]*point3d_rotatedYCap[0]) + (point3d_rotatedYCap[1]*point3d_rotatedYCap[1])); 
-        //point3d[2] = rho * cos(phi);  
-
-        theta_calculated = atan2(point3d_rotatedYCap[1], point3d_rotatedYCap[0]);
-        ph_calculated = atan2(dist,point3d_rotatedYCap[2]);   
-
-        if(theta_calculated < 0)
-            theta_calculated += 2*PI; 
-
-        projectedPlane[j][i] = make_pair(theta_calculated, ph_calculated);  
-
-        theta_pix = theta_calculated * col_radToPixlfactor;
-        phi_pix = ph_calculated * row_radToPixlfactor;
-
-        visu.draw_circle(theta_pix, phi_pix, 0.5, col, 0.1,0.1);
-
-        val[0] = image.linear_atXY(theta_pix,phi_pix,0);
-        val[1] = image.linear_atXY(theta_pix,phi_pix,1);
-        val[2] = image.linear_atXY(theta_pix,phi_pix,2);
-
-        xcoord = (int)projectedPlane.size()-i;
-        ycoord = j;
- 
-        foveal(xcoord, ycoord,0)=val[0];
-        foveal(xcoord, ycoord,1)=val[1];
-        foveal(xcoord,ycoord,2)=val[2];
-
-        foveal1(xcoord, ycoord,0) = image(int(theta_pix),int(phi_pix),0);
-        foveal1(xcoord, ycoord,1) = image(int(theta_pix),int(phi_pix),1);
-        foveal1(xcoord, ycoord,2) = image(int(theta_pix),int(phi_pix),2);
-
-        if (gridVisible && (int(projectedPlane[j][i].first*RAD2DEG) % 10 == 0))
-            foveal.draw_point(xcoord, ycoord, 0.1, col, 0.2);
-
-
-        if (gridVisible && (int(projectedPlane[j][i].second*RAD2DEG) % 10 == 0))
-            foveal.draw_point(xcoord, ycoord, 0.1, col, 0.2);
+        visu.draw_circle((int)x_s, (int)y_s, 0.5, col, 0.1, 0.1);
 
       }
+        
     }
-
-
-    visu.display(disp);
-    disp2.empty();
     
-    //foveal.display(disp2);
-    foveal.get_sqrt().normalize(0,255).display(disp2);
-    disp2.set_title("What the eye sees");
-
-    // foveal1.display(disp3);
-    // disp3.set_title("no interpolation");
-
-  }
+    visu.display(cataDisp);
+    perspDisp.empty();
+    
+    persp.display(perspDisp);
+    perspDisp.set_title("What the eye sees");
+    
+    while(!perspDisp.button() && !perspDisp.is_closed() && !cataDisp.is_closed())
+    {
+      perspDisp.wait();
+    }
+    //string saveImg = "persp_" + string(argv[1]);
+    persp.save("perspective.jpg");
 
 //main ends here
 }
