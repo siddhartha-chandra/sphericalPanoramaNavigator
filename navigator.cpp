@@ -265,7 +265,8 @@ int main(int argc, char * argv[])
         theta_pix = theta_calculated * col_radToPixlfactor;
         phi_pix = ph_calculated * row_radToPixlfactor;
 
-        visu.draw_circle(theta_pix, phi_pix, 0.5, col, 0.1,0.1);
+        if(gridVisible)
+          visu.draw_circle(theta_pix, phi_pix, 0.5, col, 0.1,0.1);
 
         val[0] = image.linear_atXY(theta_pix,phi_pix,0);
         val[1] = image.linear_atXY(theta_pix,phi_pix,1);
@@ -282,12 +283,20 @@ int main(int argc, char * argv[])
         foveal1(xcoord, ycoord,1) = image(int(theta_pix),int(phi_pix),1);
         foveal1(xcoord, ycoord,2) = image(int(theta_pix),int(phi_pix),2);
 
-        if (gridVisible && (int(projectedPlane[j][i].first*RAD2DEG) % 10 == 0))
+        if (gridVisible)
+        {
+          if((int(projectedPlane[j][i].first*RAD2DEG) % 10 == 0))
             foveal.draw_point(xcoord, ycoord, 0.1, col, 0.2);
+        }
 
 
-        if (gridVisible && (int(projectedPlane[j][i].second*RAD2DEG) % 10 == 0))
+        if (gridVisible)
+        {
+          if (int(projectedPlane[j][i].second*RAD2DEG) % 10 == 0)
             foveal.draw_point(xcoord, ycoord, 0.1, col, 0.2);
+        }
+          
+            
 
       }
     }
